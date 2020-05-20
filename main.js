@@ -6,7 +6,7 @@
  * The address of the battle results websocket server.
  * @type {string}
  */
-const SERVER_ADDRESS = 'ws://localhost:61942';
+const SERVER_ADDRESS = 'ws://localhost:15455';
 
 /**
  * The numeric battle type of a random battle.
