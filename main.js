@@ -71,17 +71,14 @@ ws.addEventListener('error', onDisconnect);
  * Sends REPLAY and SUBSCRIBE commands to replay all previous battle results and subscribe to all new ones.
  */
 function onOpen() {
-    const data = JSON.stringify([
-        {
-            messageType: 'REPLAY',
-            payload: {}
-        },
-        {
-            messageType: 'SUBSCRIBE',
-            payload: {},
-        },
-    ]);
-    ws.send(data);
+    ws.send(JSON.stringify({
+        messageType: 'REPLAY',
+        payload: {}
+    }));
+    ws.send(JSON.stringify({
+        messageType: 'SUBSCRIBE',
+        payload: {}
+    }));
 }
 
 /**
