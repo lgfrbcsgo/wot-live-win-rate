@@ -68,33 +68,59 @@ ws.addEventListener('error', onDisconnect);
 
 /**
  * Called once the websocket connection has been established.
- * Sends REPLAY and SUBSCRIBE commands to replay all previous battle results and subscribe to all new ones.
+ * Calls `get_battle_results` and `subscribe` methods through JSON RPC to receive all previous battle results
+ * and to subscribe to all new ones.
  */
 function onOpen() {
-    ws.send(JSON.stringify({
-        messageType: 'REPLAY',
-        payload: {}
-    }));
-    ws.send(JSON.stringify({
-        messageType: 'SUBSCRIBE',
-        payload: {}
-    }));
+    ws.send(JSON.stringify([
+        {
+            jsonrpc: '2.0',
+            method: 'get_battle_results',
+            id: 1,
+        },
+        {
+            jsonrpc: '2.0',
+            method: 'subscribe',
+            id: 2,
+        }
+    ]));
 }
 
 /**
  * Called for every message which we receive through the websocket connection.
- * Parses the event data as JSON, and then
- *  - proceed with handling the received battle result, or
- *  - log an error to the console in case the server responds with an error.
+ * Parses the event data as JSON, and then proceeds with handling the JSON RPC messages.
  * @param event {MessageEvent}
  */
 function onMessage(event) {
-    const message = JSON.parse(event.data);
-    if (message.messageType === 'BATTLE_RESULT') {
-        const battleResult = message.payload.result;
+    const parsed = JSON.parse(event.data);
+    if (Array.isArray(parsed)) {
+        // received a response to our batch request
+        for (const message of parsed) {
+            onJsonRpcMessage(message);
+        }
+    } else {
+        onJsonRpcMessage(parsed);
+    }
+}
+
+/**
+ * Called for every JSON RPC message we receive.
+ * Reads battle results from the message and proceeds with handling them.
+ * @param message {object}
+ */
+function onJsonRpcMessage(message) {
+    if (message.method === 'subscription') {
+        // received a `subscription` notification
+        const battleResult = message.params.battleResult;
         onBattleResult(battleResult);
-    } else if (message.messageType === 'ERROR') {
-        console.error('Protocol Error:', message.payload);
+    } else if (message.result && message.id === 1) {
+        // received response to our `get_battle_results` call
+        for (const battleResult of message.result.battleResults) {
+            onBattleResult(battleResult);
+        }
+    } else if (message.error) {
+        // received an error
+        console.error('Error:', message.error);
     }
 }
 
